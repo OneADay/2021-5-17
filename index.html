@@ -14,19 +14,22 @@
     <body>
         <script src="./libs/ccapture/CCapture.all.min.js"></script>
         <script src="./debugger.js"></script>
-        <script src="./captureRecorder.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.3.1/p5.js"></script>
         <script>
 let canvas;
 let recorder;
+
+let capturer = new window.CCapture( { 
+    name: 'render',
+    format: 'gif', 
+    workersPath: 'libs/ccapture/' 
+});
 
 const debugging = new URLSearchParams(window.location.search).get('debug');
 if (debugging !== null) {
     debug = new DebugUI();
     debug.recordBtn.addEventListener('click', () => handleRecordBtnClick())
     debug.formatSelect.addEventListener('change', () => handleFormatSelectChange())
-
-    recorder = new CCaptureRecorder();
 }
 
 handleRecordBtnClick = function () {
@@ -35,23 +38,18 @@ handleRecordBtnClick = function () {
     } else {
         frameCount = 0;
         recording = true;
-
-        recorder.setCanvas(canvas.elt);
-        recorder.start();
+        capturer.start();
     }
 }
 
 handleFormatSelectChange = function () {
-    if (debug.formatSelect.value !== 'thumbnail') {
-        recorder.setFormat(debug.formatSelect.value);
-    }
+
 }
 
 handleComplete = function () {
-    if (recorder) {
-      recording = false;
-      recorder.stop();
-    }
+    recording = false;
+    capturer.stop();
+    capturer.save();    
 }
 
 /// BEGIN SKETCH
@@ -62,6 +60,7 @@ const height = 600 || window.innerHeight;
 const totalFrames = 1000;
 let frameCount = 0;
 let recording = false;
+let recordingStarted = false;
 
 let c01 = (g) => {
   return constrain(g, 0, 1);
@@ -135,10 +134,22 @@ function draw() {
 
   pop();
 
+
+
+
   if (recording) {
-    recorder.update();
+    capturer.capture( canvas.elt );
     if (frameDelta == 0) {
       handleComplete();
+    }
+  }
+
+  if (!recordingStarted && !recording) {
+    if (frameDelta == 0) {
+      recordingStarted = true;
+      recording = true;
+      capturer.start();
+      capturer.capture( canvas.elt );
     }
   }
 }
